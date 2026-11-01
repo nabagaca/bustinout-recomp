@@ -211,6 +211,9 @@ You supply the game: the USA Xbox release, in one of two supported shapes:
 
 ## Working on the port
 
+For architecture, subsystem source maps and maintenance guidance, start at the
+[OKF knowledge index](docs/okf/index.md).
+
 - Never edit anything in `generated/`; it is rewritten on every recompile.
 - Behaviour changes go in `src/game/` as `X86_FUNC(sub_XXXXXXXX)` overrides (call
   `__imp__sub_XXXXXXXX` for the original) or as `[[hook]]` entries in `config/game.toml`.
