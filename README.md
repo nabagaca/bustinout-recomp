@@ -86,7 +86,7 @@ the keyboard and the mouse and the game sees neither.
 ## Settings, F1 / F2 overlay
 
 **F1** opens the host settings panel (display mode, resolution, aspect ratio, ultrawide,
-vsync, frame cap, render scale, anisotropic filtering, HDR on Windows, and the **Cheats**
+vsync, frame cap, render scale, FXAA anti-aliasing, anisotropic filtering, HDR on Windows, and the **Cheats**
 section) and **F2** the frame-time graph. In the F1 panel the **Resolution** control is
 greyed out in borderless mode — borderless always follows the display it is on, so no
 chosen resolution can apply there; it is editable in windowed and fullscreen, and the
@@ -104,6 +104,7 @@ set (see below). Settings are kept in `settings.toml` beside the executable
 | `render_percent` | render scale as a percent of the output height (default `100`) |
 | `fps_cap` | frame-rate cap; `0` = unlimited (default `60`) |
 | `vsync` | `true` / `false` (default `true`) |
+| `fxaa` | `true` (default) / `false` � FXAA on the final game picture, before the host overlay; applies immediately on both backends |
 | `anisotropic_filtering` | `0` = as the game asks (default) |
 | `aspect_ratio` | `auto` (default), `4:3`, `16:9`, `16:10`, `21:9`, `32:9` — on Vulkan this sets only the aspect the finished picture is presented at (`PresentSrcAspect()` in `sdk/runtime/gpu/vulkan.cpp`); `auto` presents at the title's own 4:3 |
 | `ultrawide` | `true` (default) / `false` — on Linux/Vulkan this has **no visible effect today**: the factor is computed in `sdk/runtime/app/settings.cpp` and read by the Vulkan backend for logging only, the frame target is never widened, and the picture stays pillarboxed at the presented aspect (see `docs/ultrawide.md`). The widening path exists only in the never-compiled D3D12 backend |

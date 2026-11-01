@@ -60,6 +60,7 @@ struct Draft {
     bool vsync = true;
     uint32_t fps_cap = 60;
     int render_percent = 100;
+    bool fxaa = true;
     uint32_t aniso = 0;
     int hdr = 0;            // index into kHdrKeys, app::HdrMode's order
     int paper_white = 200;  // nits
@@ -310,6 +311,7 @@ void SyncDraft() {
     g_draft.vsync = s.vsync;
     g_draft.fps_cap = s.fps_cap;
     g_draft.render_percent = int(s.render_percent);
+    g_draft.fxaa = s.fxaa;
     g_draft.aniso = s.aniso;
     g_draft.hdr = int(app::HdrWanted());
     g_draft.paper_white = int(app::PaperWhiteNits());
@@ -341,6 +343,7 @@ void Apply() {
     s.vsync = g_draft.vsync;
     s.fps_cap = g_draft.fps_cap;
     s.render_percent = uint32_t(std::max(g_draft.render_percent, 1));
+    s.fxaa = g_draft.fxaa;
     s.aniso = g_draft.aniso;
     // like the aspect, each choice fits the string's own storage
     s.hdr = kHdrKeys[g_draft.hdr];
@@ -495,6 +498,12 @@ void DrawQuality() {
     Note(text);
     Note("100% matches output height. The console picture uses non-square pixels and cropped overscan, "
          "so the internal buffer dimensions differ from the output.");
+
+    Row("Anti-aliasing");
+    const char* const aa_names[] = {"Off", "FXAA"};
+    int aa = g_draft.fxaa ? 1 : 0;
+    if (ImGui::Combo("##aa", &aa, aa_names, 2)) g_draft.fxaa = aa == 1;
+    Note("Smooths edges in the finished game picture. May soften game text slightly.");
 
     Row("Anisotropic filtering");
     int aniso = 0;
