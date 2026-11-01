@@ -6,6 +6,9 @@
 
 #include "cpu/x86_ops.h"
 #include "xdk/hle.h"
+#if defined(_WIN32)
+#include "app/app.h"
+#endif
 #if !defined(_WIN32)
 #include <cmath>
 
@@ -210,5 +213,28 @@ X86_FUNC(sub_001287C0) {
     if (!height) return;
     const uint32_t wide_w = uint32_t(std::lround(float(height) * aspect));
     X87_ST(0) = double(float(wide_w) / float(height));
+}
+#endif
+
+#if defined(_WIN32)
+// D3D12 already renders beyond the authored frame by extending its pixel extent.
+// Widen only CPU visibility: changing the shared projection/fold also stretches
+// HUD draws and embedded portraits. sub_001316B0 unprojects the culling corners
+// through the inverse projection at view+0x1A0. Its first row multiplies NDC x;
+// scaling that row extends the horizontal frustum without changing vertical FOV.
+// Restore the exact matrix bits before any renderer or subsequent camera update
+// can use it. The guest routine still computes and normalizes all six planes.
+X86_FUNC(__imp__sub_001316B0);
+X86_FUNC(sub_001316B0) {
+    const float widen = HookOff("SIMSBO_NO_WIDE") ? 1.0f : app::AspectWiden();
+    if (widen <= 1.0f) { __imp__sub_001316B0(ctx, base); return; }
+    const uint32_t matrix = ctx.ecx + 0x1A0u;
+    uint32_t saved[4];
+    for (uint32_t i = 0; i < 4; ++i) {
+        saved[i] = X86_MEM32(matrix + i * 4);
+        X86_MEMF32(matrix + i * 4) *= widen;
+    }
+    __imp__sub_001316B0(ctx, base);
+    for (uint32_t i = 0; i < 4; ++i) X86_MEM32(matrix + i * 4) = saved[i];
 }
 #endif

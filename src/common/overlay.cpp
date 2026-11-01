@@ -490,9 +490,11 @@ void DrawQuality() {
     float scale = std::max(out.height * (g_draft.render_percent / 100.0f) / kGuestH, 0.1f);
     uint32_t rw = 0, rh = 0;
     FrameTarget(scale, BackendWiden(), rw, rh);  // D9
-    char text[80];
-    std::snprintf(text, sizeof text, "%u x %u frame target, from the guest's 640 x 480.", rw, rh);
+    char text[160];
+    std::snprintf(text, sizeof text, "%u x %u internal buffer; %u x %u output.", rw, rh, out.width, out.height);
     Note(text);
+    Note("100% matches output height. The console picture uses non-square pixels and cropped overscan, "
+         "so the internal buffer dimensions differ from the output.");
 
     Row("Anisotropic filtering");
     int aniso = 0;
@@ -568,6 +570,14 @@ void DrawSettings() {
     }
 
     const float label_width = ImGui::CalcTextSize("Anisotropic filtering").x + ImGui::GetStyle().ItemSpacing.x;
+    if (ImGui::Button("Quit game")) ImGui::OpenPopup("Quit game?");
+    if (ImGui::BeginPopupModal("Quit game?", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted("Quit to desktop? Unsaved progress will be lost.");
+        if (ImGui::Button("Quit to desktop")) app::RequestQuit();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
     ImGui::SeparatorText("Display");
     if (BeginRows("##display_rows", label_width)) {
         DrawDisplay();

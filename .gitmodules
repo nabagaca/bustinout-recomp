@@ -1,4 +1,4 @@
 [submodule "sdk"]
 	path = sdk
-	url = https://github.com/abilliontokens/XboxXBERecomp.git
-	branch = bustinout-port
+	url = https://github.com/nabagaca/XboxXBERecomp.git
+	branch = codex/display-and-quit-fixes
