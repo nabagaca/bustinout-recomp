@@ -21,6 +21,8 @@ Root [CMake](../../CMakeLists.txt) requires 3.25 and C++20. Presets use Ninja, c
 
 [`XbeRecomp.cmake`](../../sdk/cmake/XbeRecomp.cmake) fetches Zydis v4.1.1, toml++ v3.4.0, Dear ImGui v1.91.9b and SDL3 release-3.4.16 (static). Linux requires Vulkan, zlib and an HLSL-to-SPIR-V path: DXC headers plus runtime libdxcompiler.so, or detected glslang/SPIRV headers/libraries. XBE_SHADER_BACKEND=dxc|glslang can require one at configure time. CMake comments explicitly justify the ImGui pin through SDL3 API compatibility.
 
+Root CMake disables SDL's `LIBC_HAS_ITOA` probe result for Windows toolchains using the MSVC CRT. The debug CRT can satisfy that deprecated alias during configuration while the release link cannot; SDL then uses its existing `SDL_ltoa` fallback. No fetched SDL source is patched.
+
 # Build routes
 
 | Target | Commands | Output |

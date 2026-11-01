@@ -24,6 +24,11 @@ if(XBE_HOST_TOOLS_ONLY)
     include(${SDK}/cmake/XbeTools.cmake)
     return()
 endif()
+# SDL's itoa probe can succeed against the MSVC debug CRT even though the release CRT does
+# not export that deprecated POSIX alias. Use SDL's existing SDL_ltoa fallback for both builds.
+if(WIN32 AND (MSVC OR CMAKE_C_SIMULATE_ID STREQUAL "MSVC"))
+    set(LIBC_HAS_ITOA OFF CACHE INTERNAL "Use SDL's portable integer conversion on the MSVC CRT" FORCE)
+endif()
 include(${SDK}/cmake/XbeRecomp.cmake)
 
 file(GLOB XBE_HOST_SOURCES CONFIGURE_DEPENDS src/*/*.cpp)
