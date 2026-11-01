@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "app/app.h"
+#include "common/intro_skip.h"
 #include "common/input_kbm.h"
 #include "common/overlay.h"
 #include "core/input.h"
@@ -13,6 +14,10 @@
 #include <string>
 
 namespace {
+
+bool g_skip_intro_videos = true;
+std::atomic<bool> g_skip_intro_video_enabled{true};
+void InitGame() { simsbo::intro_skip::SetEnabled(g_skip_intro_videos); }
 
 // Opt-in self-test (SIMSBO_AUTOSTART): a scripted pad on port 0, repeating a 10 s
 // cycle from ~2 s after the first poll: Start (wButtons 0x0010) held 0-0.5 s,
@@ -150,6 +155,14 @@ void PadHook(int port, input::Pad& pad) {
 
 }  // namespace
 
+namespace simsbo::intro_skip {
+
+bool Enabled() { return g_skip_intro_video_enabled.load(std::memory_order_relaxed); }
+
+void SetEnabled(bool enabled) { g_skip_intro_video_enabled.store(enabled, std::memory_order_relaxed); }
+
+}  // namespace simsbo::intro_skip
+
 // what the runtime asks of the game; strings must be set, hooks may stay null
 const app::GameInfo app::kGame = {
     .title = L"The Sims: Bustin' Out",       // window and splash
@@ -160,10 +173,10 @@ const app::GameInfo app::kGame = {
     .splash = L"splash",                     // optional splash.png or splash.bmp beside the exe
     .missing = L"Put the game in the assets folder: its disc image (.iso), or default.xbe with its DATA and movies folders beside it.",
     .images = {{"default.xbe", "SimsBustinOut"}},  // each recompiled xbe and its exe, for title launches
-    .options = {},                                 // no game-specific settings yet
+    .options = {{"skip_intro_videos", &g_skip_intro_videos, nullptr}},
     .load = nullptr,                         // reads more from the settings file's toml::table
     .save = nullptr,                         // writes more into it
-    .init = nullptr,                         // after the settings load, before the window and boot
+    .init = &InitGame,                       // after the settings load, before the window and boot
     .loaded = nullptr,                       // image in memory, before its entry point runs
     .window = nullptr,                       // the game window is up
 #if defined(_WIN32)
@@ -172,7 +185,7 @@ const app::GameInfo app::kGame = {
     .message = nullptr,                      // the SDL host calls no message hook; kbm polls SDL
 #endif
     .ui = &overlay::Draw,                    // ImGui drawing each frame: F1 settings, F2 performance
-    .pad = &PadHook,                         // keyboard and mouse as port 0, SIMSBO_AUTOSTART self-test
+    .pad = &PadHook,                         // keyboard/mouse and optional scripted input on port 0
     .rumble = nullptr,                       // changes a rumble before it is set
     // This title draws a 640x448 picture inside its 640x480 back buffer: the UI multiplies x by
     // 1/640 (dword_2E88D4, 0x3ACCCCCD, used at 0xCAEEA) and y by 1/448 (dword_2E88D8, 0x3B124925,

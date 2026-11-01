@@ -9,6 +9,7 @@ sources:
   - resource: ../../src/common/input_kbm.cpp
   - resource: ../../src/common/overlay.cpp
   - resource: ../../src/common/game_info.cpp
+  - resource: ../../src/common/intro_skip.h
 ---
 
 # Timing overrides
@@ -36,3 +37,5 @@ Accepted requests enter guest setter `sub_00072010` with options object `0x310B9
 Windows collects held input through messages and releases on focus loss. Linux polls keyboard state and reads mouse data cached on the window thread. Focus gates input; F1 captures keyboard/mouse. [`overlay.cpp`](../../src/common/overlay.cpp) draws settings/cheats (F1) and performance (F2) through ImGui. Display changes use [app event handling](host.md), not native-window calls from render callbacks.
 
 [`game_info.cpp`](../../src/common/game_info.cpp) layers opt-in scripts before keyboard merging. SIMSBO_STEP names a token file, takes precedence over autostart and samples every 50 ms under a mutex. Changed NAMExN tokens generate up to 40 pulses: 130 ms on/off for buttons, 160 ms for sticks. Leaving the same token does not restart the burst. SIMSBO_AUTOSTART otherwise cycles Start/Up/A after an initial delay; it is not a full unattended household test.
+
+The saved `skip_intro_videos` option defaults on. The `sub_00175A60` movie-open override bypasses EA logo and Sims intro IDs before file access or decoder creation. It performs the original resource reset under the movie mutex and returns success with state 2 (finished). The completion query `sub_001758F0` recognizes state 2 immediately; `sub_00175930` submits no frame with a null decoder. Reward and attract IDs retain original playback. Maxis is a separate image state: `sub_000F73D0` requests its normal next state before loading `maxis_logo_brand`; update `sub_000F8660` and draw `sub_000F74A0` bypass its fade and rendering. There is no synthetic input or timer. F1 Game exposes the option; Save writes it to `settings.toml`. See [movie bypass analysis](../intro-videos.md) for ABI and resolver evidence.

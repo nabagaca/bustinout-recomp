@@ -6,6 +6,8 @@
 
 #include "cpu/x86_ops.h"
 #include "xdk/hle.h"
+#include "common/intro_skip.h"
+#include "core/log.h"
 #if defined(_WIN32)
 #include "app/app.h"
 #endif
@@ -13,7 +15,6 @@
 #include <cmath>
 
 #include "app/platform.h"  // app::HostAspect
-#include "core/log.h"
 #endif
 
 // the frame step the engine is working with, seconds, published by sub_001232F0 below
@@ -28,6 +29,82 @@ bool HookOff(const char* name) {
     return v && v[0] && std::strcmp(v, "0") != 0;
 }
 }  // namespace
+
+// Maxis is a separate image state (vtable 0x2EAD98), not an XMV.
+// Its enter method loads maxis_logo_brand at 0xF73EA. Its update's normal
+// completion at 0xF86F5 requests state 5 with zero transition time.
+X86_FUNC(__imp__sub_000F73D0);
+X86_FUNC(sub_000F73D0) {
+    if (!simsbo::intro_skip::Enabled()) { __imp__sub_000F73D0(ctx, base); return; }
+    kernel::CallGuest(ctx, 0xF5480u, {5u, 0u});
+    ctx.esp += 4;  // plain ret
+    LOGR("simsbo: bypassed Maxis logo state before brand load");
+}
+
+X86_FUNC(__imp__sub_000F8660);
+X86_FUNC(sub_000F8660) {
+    if (!simsbo::intro_skip::Enabled()) { __imp__sub_000F8660(ctx, base); return; }
+    kernel::CallGuest(ctx, 0xF5480u, {5u, 0u});
+    ctx.esp += 8;  // retn 4 (elapsed seconds)
+}
+
+X86_FUNC(__imp__sub_000F74A0);
+X86_FUNC(sub_000F74A0) {
+    if (!simsbo::intro_skip::Enabled()) { __imp__sub_000F74A0(ctx, base); return; }
+    ctx.esp += 8;  // retn 4 (renderer), no logo draw during the queued transition
+}
+
+// Movie open (vtable 0x2EF974 slot 0): this in ECX, movie ID in the
+// fourth stack argument ([esp+0x10]), AL success, retn 0x10. The resolver
+// at 0x175A93..0x175C52 maps the IDs below to reward/attract movies;
+// every other branch selects an EA logo or Sims intro (including the
+// default ea_games.xmv branch). Preserve reward and attract playback.
+X86_FUNC(__imp__sub_00175A60);
+X86_FUNC(sub_00175A60) {
+    const uint32_t id = X86_MEM32(ctx.esp + 0x10u);
+    bool opening = true;
+    switch (id) {
+        case 0x20385E97u: case 0x0F4E65C7u: case 0x27105D7Eu:
+        case 0x2903953Eu: case 0x2E568DE2u: case 0x3F822C53u:
+        case 0x51660CD5u: case 0x628990ADu: case 0x7933B387u:
+        case 0xA8FB326Cu: case 0xAC4EF059u: case 0xDC9B2C61u:
+        case 0xED3CFC68u: case 0xEE4EBBD0u: case 0xEDF3E6B7u:
+        case 0xF4B4318Bu: case 0xF7E267A2u:
+            opening = false;
+    }
+    if (!opening || !simsbo::intro_skip::Enabled()) {
+        __imp__sub_00175A60(ctx, base);
+        return;
+    }
+
+    const uint32_t movie = ctx.ecx;
+    const uint32_t mutex = movie + 0x64u;
+    const uint32_t table = X86_MEM32(mutex);
+    ctx.ecx = mutex;
+    kernel::CallGuest(ctx, X86_MEM32(table + 4u), {0xFFFFFFFFu});
+    // Same resource reset as the original open's 0x175C52..0x175CB1,
+    // under the same mutex, but no file open, XMV decoder, or audio setup.
+    const uint32_t decoder = X86_MEM32(movie + 0xCu);
+    if (decoder) kernel::CallGuest(ctx, 0x2B2051u, {decoder});
+    X86_MEM32(movie + 0xCu) = 0;
+    const uint32_t file = X86_MEM32(movie + 0x40u);
+    if (file != 0xFFFFFFFFu) kernel::CallGuest(ctx, 0x101D04u, {file});
+    X86_MEM32(movie + 0x40u) = 0xFFFFFFFFu;
+    const uint32_t buffer = X86_MEM32(movie + 0x60u);
+    if (buffer) kernel::CallGuest(ctx, 0x123040u, {buffer});
+    X86_MEM32(movie + 0x60u) = 0;
+    X86_MEM32(movie + 0x58u) = 0;
+    X86_MEM32(movie + 0x5Cu) = 0;
+    // State 2 is finished: sub_1758F0 returns true for it, while
+    // sub_175930 returns false without a decoder and never submits a frame.
+    X86_MEM32(movie + 0x10u) = 2;
+    ctx.ecx = mutex;
+    kernel::CallGuest(ctx, X86_MEM32(table + 0xCu), {});
+    ctx.ecx = movie;
+    ctx.eax = (ctx.eax & 0xFFFFFF00u) | 1u;
+    ctx.esp += 20;  // retn 0x10
+    LOGR("simsbo: bypassed opening movie %08X before file open", id);
+}
 
 // D3DDevice_InsertCallback(Flags, pCallback, Context) at 0x24D030.
 //

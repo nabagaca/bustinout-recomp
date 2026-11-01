@@ -5,6 +5,7 @@
 #include "common/overlay.h"
 
 #include "common/cheats.h"
+#include "common/intro_skip.h"
 #include "common/input_kbm.h"
 
 #include <algorithm>
@@ -62,6 +63,7 @@ struct Draft {
     int render_percent = 100;
     bool fxaa = true;
     uint32_t aniso = 0;
+    bool skip_intro_videos = true;
     int hdr = 0;            // index into kHdrKeys, app::HdrMode's order
     int paper_white = 200;  // nits
     int peak = 0;           // nits, 0 the display's own maximum
@@ -313,6 +315,9 @@ void SyncDraft() {
     g_draft.render_percent = int(s.render_percent);
     g_draft.fxaa = s.fxaa;
     g_draft.aniso = s.aniso;
+    for (const app::Option& option : app::kGame.options)
+        if (option.flag && std::strcmp(option.key, "skip_intro_videos") == 0)
+            g_draft.skip_intro_videos = *option.flag;
     g_draft.hdr = int(app::HdrWanted());
     g_draft.paper_white = int(app::PaperWhiteNits());
     g_draft.peak = int(app::PeakNits());
@@ -345,6 +350,12 @@ void Apply() {
     s.render_percent = uint32_t(std::max(g_draft.render_percent, 1));
     s.fxaa = g_draft.fxaa;
     s.aniso = g_draft.aniso;
+    for (const app::Option& option : app::kGame.options) {
+        if (option.flag && std::strcmp(option.key, "skip_intro_videos") == 0) {
+            *option.flag = g_draft.skip_intro_videos;
+            simsbo::intro_skip::SetEnabled(g_draft.skip_intro_videos);
+        }
+    }
     // like the aspect, each choice fits the string's own storage
     s.hdr = kHdrKeys[g_draft.hdr];
     s.hdr_paper_white = uint32_t(g_draft.paper_white);
@@ -513,6 +524,12 @@ void DrawQuality() {
     Note("Forced only where the game already filters across mip levels.");
 }
 
+void DrawGameOptions() {
+    Row("Skip intro videos");
+    ImGui::Checkbox("##skip_intro_videos", &g_draft.skip_intro_videos);
+    Note("Bypasses the EA/Maxis logos and Sims intro before video playback starts.");
+}
+
 // the fixed keyboard-and-mouse bindings (input_kbm.cpp): shown, not edited - the layout is the
 // port's control scheme, not a per-player setting
 void DrawInput() {
@@ -595,6 +612,11 @@ void DrawSettings() {
     ImGui::SeparatorText("Quality");
     if (BeginRows("##quality_rows", label_width)) {
         DrawQuality();
+        ImGui::EndTable();
+    }
+    ImGui::SeparatorText("Game");
+    if (BeginRows("##game_rows", label_width)) {
+        DrawGameOptions();
         ImGui::EndTable();
     }
     ImGui::SeparatorText("Input");

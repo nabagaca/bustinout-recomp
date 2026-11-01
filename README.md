@@ -86,8 +86,9 @@ the keyboard and the mouse and the game sees neither.
 ## Settings, F1 / F2 overlay
 
 **F1** opens the host settings panel (display mode, resolution, aspect ratio, ultrawide,
-vsync, frame cap, render scale, FXAA anti-aliasing, anisotropic filtering, HDR on Windows, and the **Cheats**
-section) and **F2** the frame-time graph. In the F1 panel the **Resolution** control is
+vsync, frame cap, render scale, FXAA anti-aliasing, anisotropic filtering, HDR on Windows,
+skip intro videos, and the **Cheats** section) and **F2** the frame-time graph. In the F1
+panel the **Resolution** control is
 greyed out in borderless mode — borderless always follows the display it is on, so no
 chosen resolution can apply there; it is editable in windowed and fullscreen, and the
 stored value survives a mode switch (`src/common/overlay.cpp`, superproject `4fae9fc`).
@@ -110,6 +111,7 @@ set (see below). Settings are kept in `settings.toml` beside the executable
 | `ultrawide` | `true` (default) / `false` — on Linux/Vulkan this has **no visible effect today**: the factor is computed in `sdk/runtime/app/settings.cpp` and read by the Vulkan backend for logging only, the frame target is never widened, and the picture stays pillarboxed at the presented aspect (see `docs/ultrawide.md`). The widening path exists only in the never-compiled D3D12 backend |
 | `hdr`, `hdr_paper_white`, `hdr_peak` | Windows/D3D12 only: `off` (default) / `auto` / `on`; paper white default `200`, peak `0` = display maximum |
 | `join_ip` | system-link co-op host address (empty by default) |
+| `skip_intro_videos` | `true` (default) / `false` - bypasses the EA/Maxis logos and Sims intro before video playback starts |
 
 The F1 panel's **Cheats** section enters the game's own pad codes the game's own way
 (`docs/cheats.md`); Give Money has been entered in play through the game's own setter
